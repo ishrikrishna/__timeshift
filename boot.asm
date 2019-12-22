@@ -142,18 +142,6 @@ _start:
 	
 BITS 32
 wel32Msg db "Entered Second Stage in Protected Mode.", 0
-
-IDT_DESC:
-.offset_low: dw 0
-.selector: dw CODE_SEG
-.reserved: db 0
-.type: db 0
-.offset_high: dw 0
-
-IDT equ 0x500
-IDT_PTR:
-	dw 2048
-	dd IDT
 	
 ; ENTRY Point/subroutine for Protected mode
 PmodeEntry:
@@ -167,24 +155,12 @@ PmodeEntry:
 	mov ebp, 0xffffff
 	mov esp, ebp
 	
+	cli
 	;Enable A20 Gate to allow 32 bit addressing
 	call EnableA20Gate
-	
-	cli
-	call SetupIDT
 	call RemapPIC
-	
-	mov eax, 33
-	mov ebx, KBDISR
-	call SetISR
-	
-	call refreshClock
-	mov eax, 40
-	mov ebx, ClockISR
-	call SetISR
+	call SetTimer
 	call initRTC
-	
-	sti
 	
 	mov si, wel32Msg 	; Setting PM welcome message to be printed
 	mov eax, 0
@@ -209,142 +185,6 @@ PmodeEntry:
 
 hang:
 	jmp hang
-	
-SetupIDT:
-	cli
-	mov eax, DefaultISR
-	mov word [IDT_DESC.offset_low], ax
-	shr eax, 16
-	mov word [IDT_DESC.offset_high], ax
-	mov byte [IDT_DESC.type], 10001110b
-	mov ebx, 0
-	mov edi, IDT
-.repeat:
-	mov eax, dword [IDT_DESC]
-	mov dword [edi + ebx], eax
-	mov eax, dword [IDT_DESC + 4]
-	mov dword [edi + ebx + 4], eax
-	add ebx, 8
-	cmp ebx, 2048
-	jge .done 
-	jmp .repeat
-.done:
-	lidt [IDT_PTR]
-	ret
-
-SetISR:
-	shl eax, 3
-	mov edi, IDT
-	add edi, eax
-	mov word [edi], bx
-	shr ebx, 16
-	mov word [edi + 6], bx
-	ret
-
-DefaultISR:
-	;.IntMsg db "I", 0
-	;.IntMsgLen equ $ - .IntMsg - 1
-	;cli
-	;pusha
-	;mov si, .IntMsg
-	;mov eax, -.IntMsgLen
-	;mov ebx, 25
-	;call Print32
-    mov al, 0x20
-    out 0x20, al
-    ;popa
-	iret
-
-clock:
-	.hour dw '00'
-	db ':'
-	.minute dw '00'
-	db ':'
-	.second dw '00'
-	db ' '
-	.day dw '00'
-	db '/'
-	.month dw '00'
-	db '/'
-	.cent dw '00'
-	.year dw '00'
-	db 0
-clockLen equ $-clock-1
-	
-updateClock:
-    out 0x70, al
-    in al, 0x71
-    shl ax, 4
-    shr al, 4
-    add al, '0'
-    mov byte [ebx + 1], al
-    shr ax, 4
-    shr al, 4
-    add al, '0'
-    mov byte [ebx], al
-    ret
-refreshClock:
-    mov esi, clock
-	mov eax, -clockLen
-	mov ebx, 1
-	call Print32
-	ret
-
-ClockISR:
-	cli
-	pusha
-	
-	mov ebx, clock.second
-    mov al, 0x00
-    call updateClock
-	mov ebx, clock.minute
-    mov al, 0x02
-    call updateClock
-	mov ebx, clock.hour
-    mov al, 0x04
-    call updateClock
-    
-	mov ebx, clock.day
-    mov al, 0x07
-    call updateClock
-	mov ebx, clock.month
-    mov al, 0x08
-    call updateClock
-	mov ebx, clock.cent
-    mov al, 0x32
-    call updateClock
-    mov ebx, clock.year
-    mov al, 0x09
-    call updateClock
-    call refreshClock
-    
-    ; ACK RTC
-    mov al, 0x0c
-    out 0x70, al
-    in al, 0x71
-    
-    mov al, 0xa0
-    out 0xa0, al
-    mov al, 0x20
-    out 0x20, al
-    popa
-	iret
-	
-kIntMsg db "Keyboard!", 0
-kIntMsgLen equ $ - kIntMsg - 1
-KBDISR:
-	cli
-	pusha
-	
-	mov esi, kIntMsg
-	mov eax, kIntMsgLen
-	mov ebx, 20
-	call Print32
-    
-    mov al, 0x20
-    out 0x20, al
-    popa
-	iret
 	
 ; Sub routine to print message in 32 bit protected mode
 Print32:
@@ -419,8 +259,8 @@ SetTimer:
 	
 EnableA20Gate:
 ; Check A20 line
-; Returns to caller if A20 gate is cleared.
-; Continues to A20_on if A20 line is set.
+; Returns to caller if A20 gate is set.
+; Continues to A20_of if A20 line is not set.
 ; Written by Elad Ashkcenazi    
  
 	pushad
@@ -431,8 +271,8 @@ EnableA20Gate:
 					  ;the address 0x012345 that would contain 0x112345 (edi)) 
 	cmpsd             ;compare addresses to see if the're equivalent.
 	popad
-	je A20_off        ;if not equivalent , A20 line is set.
-	ret               ;if equivalent , the A20 line is cleared.
+	je A20_off        ;if equivalent , A20 line is not set.
+	ret               ;if not equivalent , the A20 line is set.
  
 A20_off:
 	in al, 0x92
