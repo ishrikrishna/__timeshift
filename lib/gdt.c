@@ -29,7 +29,7 @@ void install_gdt(){
 	entry.access = 0xf2;
 	gdt[4] = entry;
 	
-	gdtr_p.limit = (short)40;
+	gdtr_p.limit = (short)sizeof(gdt);
 	gdtr_p.base_address = (int)gdt;
 	asm volatile ("lgdt %0":: [gdtr_p]"m"(gdtr_p));
 }

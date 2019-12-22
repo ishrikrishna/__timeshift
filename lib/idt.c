@@ -36,7 +36,7 @@ void install_idt(){
 	for(int i = 0; i<256; i++){
 		idt[i] = entry;
 	}
-	idtr_p.limit = (short)2048;//sizeof(idt);
+	idtr_p.limit = (short)sizeof(idt);
 	idtr_p.base_address = (int)idt;
 	
 	//Attach ISR
