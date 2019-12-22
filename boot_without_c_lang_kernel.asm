@@ -1,15 +1,12 @@
-; __timeshit 
-; First Stage (Real Mode) && Second Stage (Protected mode) Bootloader
-; This file will run on its own
-;
-; Prerequisties:
-; nasm -v						=>NASM version 2.14
-; gcc -v 						=>gcc version 8.3.0 (Ubuntu 8.3.0-6ubuntu1) 
-; qemu-system-i386 --version	=> QEMU emulator version 3.1.0 (Debian 1:3.1+dfsg-2ubuntu3.7)
-;
-; To RUN (Use Grouped Command below):
-;	nasm boot_without_c_lang_kernel.asm -o boot_without_c_lang_kernel.bin && dd conv=notrunc if=boot_without_c_lang_kernel.bin of=boot_without_c_lang_kernel.flp && qemu-system-i386 -fda boot_without_c_lang_kernel.flp
-;
+; TestOS - Simple OS/Bootloader Script 
+; To demostrate jumping from 16-Bit Real Mode to 32 Bit Protected mode
+; Tested in QEMU
+; Simply by setting up only GDT. 
+; A20 Gate is not part of of this sccript.
+; No keyboard inputs required. I think, That would have made this interactive and better.
+; 
+; Single grouped Command to Test the script in Linux (Qemu is Required)
+; nasm boot_without_c_lang_kernel.asm -o boot_without_c_lang_kernel.bin && dd conv=notrunc if=boot_without_c_lang_kernel.bin of=boot_without_c_lang_kernel.flp && qemu-system-i386 -fda boot_without_c_lang_kernel.flp
 ; No license and Warranty - Use at your own risk after studying the code below.
 ;
 ; Have a great day,
@@ -116,7 +113,7 @@ _start:
 	
 	; Loading Protected Mode code
 	mov ah, 0x02
-	mov al, 64
+	mov al, 4
 	mov cx, 0x0002
 	mov dh, 0
 	mov dl, 0
@@ -200,18 +197,6 @@ PmodeEntry:
 	mov ebx, 0
 	call Print32		; Printing PM Welcome message
 	;int 33
-	
-	; Kernel code is already loaded in memory during real mode from disk
-	; via MBR (First Stage)
-	;
-	; Fetching kernel entry point
-	; Kernel is an ELF file
-	; 4 bytes start from offset 0x18 in ELF Header contains the entry point
-	mov ebx, [0x8200 + 0x18]
-	; Calculating effective addres to jump to
-	lea ebx, [0x8200 + ebx]
-	; Jumping to kernel
-	jmp ebx
 	
 	; Halting the system
 	jmp hang
