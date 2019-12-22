@@ -1,15 +1,6 @@
 ; __timeshit 
 ; First Stage (Real Mode) && Second Stage (Protected mode) Bootloader
-; This file will run on its own
-;
-; Prerequisties:
-; nasm -v						=>NASM version 2.14
-; gcc -v 						=>gcc version 8.3.0 (Ubuntu 8.3.0-6ubuntu1) 
-; qemu-system-i386 --version	=> QEMU emulator version 3.1.0 (Debian 1:3.1+dfsg-2ubuntu3.7)
-;
-; To RUN (Use Grouped Command below):
-;	nasm boot_without_c_lang_kernel.asm -o boot_without_c_lang_kernel.bin && dd conv=notrunc if=boot_without_c_lang_kernel.bin of=boot_without_c_lang_kernel.flp && qemu-system-i386 -fda boot_without_c_lang_kernel.flp
-;
+; 
 ; No license and Warranty - Use at your own risk after studying the code below.
 ;
 ; Have a great day,
