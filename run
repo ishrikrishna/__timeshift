@@ -1,10 +1,9 @@
 BUILD_DIR="build"
-rm kernel.flp
+rm $BUILD_DIR/kernel.flp
 nasm boot.asm -o $BUILD_DIR/boot.bin && dd count=8 conv=notrunc if=$BUILD_DIR/boot.bin of=$BUILD_DIR/kernel.flp
 rm $BUILD_DIR/kernel.out
-gcc -Iinclude -ffreestanding -fno-builtin -nostdlib -Wall -m32 kernel.c lib/* -o $BUILD_DIR/kernel.out
+gcc -Iinclude -mno-red-zone -ffreestanding -fno-builtin -nostdlib -Wall -m32 kernel.c lib/* -o $BUILD_DIR/kernel.out
 #rm $BUILD_DIR/kernel.bin
 #objcopy -O binary $BUILD_DIR/kernel.out $BUILD_DIR/kernel.bin
 dd seek=3 conv=notrunc if=$BUILD_DIR/kernel.out of=$BUILD_DIR/kernel.flp
-qemu-system-i386 -s -fda $BUILD_DIR/kernel.flp
-
+qemu-system-i386 -s -blockdev driver=file,node-name=f0,filename=$BUILD_DIR/kernel.flp -device floppy,drive=f0 &

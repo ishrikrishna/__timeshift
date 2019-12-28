@@ -1,3 +1,6 @@
+#ifndef _IDT_H
+#define _IDT_H
+
 /** IDT Config */
 //#define idtr 0x7e30 // 48 bits; 16 => Length, 32 => Start Address
 // IDT entries format/structure
@@ -15,6 +18,7 @@ struct idtr {
 } __attribute__ ((packed));
 
 extern void common_isr();
-extern void keyboard_isr();
-extern void attach_isr(int int_num, int isr_addr);
+extern struct idt_entry* get_idt_entry(int int_num);
 extern void install_idt();
+
+#endif

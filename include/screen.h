@@ -1,3 +1,6 @@
+#ifndef _SCREEN_H
+#define _SCREEN_H
+
 /** VGA Config */
 #define vga_addr 0xb8000
 #define vga_char_fgcolor 0xf
@@ -8,3 +11,5 @@
 extern void putc(int x, int y, char c);
 extern void puts(int x, int y, char* s);
 extern void clrscrn();
+
+#endif

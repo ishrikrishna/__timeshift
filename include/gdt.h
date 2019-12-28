@@ -1,3 +1,6 @@
+#ifndef _GDT_H
+#define _GDT_H
+
 /** GDT Config */
 //#define gdtr 0x7c2a // 48 bits; 16 => Length, 32 => Start Address
 // GDT entries format/structure
@@ -15,3 +18,5 @@ struct gdtr {
 } __attribute__ ((packed));
 
 extern void install_gdt();
+
+#endif
