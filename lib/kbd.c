@@ -1,6 +1,7 @@
 #include <kbd.h>
 #include <io.h>
 #include <screen.h>
+#include <scheduler.h>
 
 static const char kbd_scancodes[] = {
         ' ', 'e', '1', '2', '3', '4', '5', '6', '7', '8',
@@ -22,15 +23,20 @@ char kbd_get_character(char scancode){
 	return kbd_scancodes[scancode & 0x7f];
 }
 
-__attribute__ ((cdecl))
-void kbd_wait(unsigned int secs){
-	unsigned int wait = sched_ticks + secs;
-	while(wait > sched_ticks){
+int kbd_is_set(){
+	return kbd_sc == -1 ? 0 : 1;
+}
+void kbd_unset(){
+	kbd_sc = -1;
+}
+
+void kbd_wait(int secs){
+	int wait = get_sched_ticks() + secs;
+	while(wait > get_sched_ticks()){
                 if(kbd_sc != -1){
                         putc(1,1,kbd_get_character(kbd_sc));
                         kbd_sc = -1;
 			break;
                 }
-		if(sched_ticks > wait){break;}
         }
 }

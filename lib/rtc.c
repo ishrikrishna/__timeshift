@@ -22,20 +22,10 @@ void format_rtc_val(short val, short* out){
 	*out = ((val >> 4 & 0x000f) | (val << 8 & 0x0f00)) + 0x3030;
 }
 
-void update_sched_ticks(){
-	if(time_elapsed > 1024){
-                time_elapsed = 0;
-                sched_ticks++;
-                if(sched_ticks >= sched_ticks_reset_interval){
-                        sched_ticks = 0;
-               	}
-	}
- 	time_elapsed++;
-}
-
 void flush_rtc(){
+	time_elapsed++;
 	if(!rtc_available && time_elapsed >= 1024){
-		
+		time_elapsed = 0;
 		outb(0x70, 0x00);
 		ctime.sec = inb(0x71);
 		outb(0x70, 0x02);
@@ -76,6 +66,12 @@ void display_rtc(int x, int y){
 
 }
 
+int rtc_is_set(){
+	return rtc_available;
+}
+void rtc_unset(){
+	rtc_available = 0;
+}
 void rtc_wait(){
 	while(1){
 		if(rtc_available){

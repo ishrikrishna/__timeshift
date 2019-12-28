@@ -11,12 +11,11 @@ struct rtc {
                 unsigned short year;
                 unsigned short century;
 } __attribute__ ((packed));
-extern unsigned int sched_ticks;
-extern unsigned int sched_ticks_reset_interval;
 
-extern void update_sched_ticks();
 extern void flush_rtc();
 extern void display_rtc(int x, int y);
 extern void rtc_wait();
+extern int rtc_is_set();
+extern void rtc_unset();
 
 #endif

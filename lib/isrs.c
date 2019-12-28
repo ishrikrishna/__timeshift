@@ -4,6 +4,7 @@
 #include <io.h>
 #include <screen.h>
 #include <kbd.h>
+#include <scheduler.h>
 
 //extern int kbd_sc;
 
@@ -32,8 +33,10 @@ void timer_isr(){
 __attribute__ ((cdecl, naked))
 void rtc_isr(){
 	asm volatile ("cli \n\t" "pusha \n\t");
+	
 	flush_rtc();
 	update_sched_ticks();
+
 	outb(0x70, 0x0c);
 	inb(0x71);
 	outb(0xa0, 0xa0);

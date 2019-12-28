@@ -5,10 +5,8 @@
 #include <io.h>
 #include <rtc.h>
 #include <kbd.h>
+#include <scheduler.h>
 
-extern void scheduler();
-unsigned int sched_ticks = 0;
-unsigned int sched_ticks_reset_interval = 60;
 int _start(){
 	char* WelcomeMsg = "Welcome! Kernel loaded successfully.";
 	clrscrn();
@@ -26,8 +24,3 @@ int _start(){
 	for(;;);
 }
 
-void scheduler(){
-	rtc_wait();
-	kbd_wait(1);
-	scheduler();
-}
