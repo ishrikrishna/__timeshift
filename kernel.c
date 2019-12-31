@@ -19,7 +19,9 @@ int _start(){
 	install_idt();
 	install_isrs();
 	asm volatile ("sti");
-	
+
+	sched_queue_add((int)&rtc_wait);
+	sched_queue_add((int)&kbd_wait);
 	scheduler();
 	for(;;);
 }

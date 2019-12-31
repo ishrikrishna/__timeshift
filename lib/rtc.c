@@ -62,22 +62,17 @@ void display_rtc(int x, int y){
 	format_rtc_val(ctime.year, (short *)(ptime+17));
 
 	puts(x, y, ptime);
-
-
 }
 
 int rtc_is_set(){
 	return rtc_available;
 }
-void rtc_unset(){
+void rtc_clear(){
 	rtc_available = 0;
 }
 void rtc_wait(){
-	while(1){
-		if(rtc_available){
-			display_rtc(60, 1);	
-			rtc_available = 0;
-			break;
-		}
+	if(rtc_is_set()){
+		display_rtc(60, 1);	
+		rtc_clear();
 	}
 }

@@ -6,4 +6,4 @@ gcc -Iinclude -mno-red-zone -ffreestanding -fno-builtin -nostdlib -Wall -m32 ker
 #rm $BUILD_DIR/kernel.bin
 #objcopy -O binary $BUILD_DIR/kernel.out $BUILD_DIR/kernel.bin
 dd seek=3 conv=notrunc if=$BUILD_DIR/kernel.out of=$BUILD_DIR/kernel.flp
-qemu-system-i386 -s -blockdev driver=file,node-name=f0,filename=$BUILD_DIR/kernel.flp -device floppy,drive=f0 &
+qemu-system-i386 -s $1 -blockdev driver=file,node-name=f0,filename=$BUILD_DIR/kernel.flp -device floppy,drive=f0 &

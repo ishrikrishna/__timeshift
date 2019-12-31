@@ -1,6 +1,9 @@
 #ifndef _SCHEDULER_H
 #define _SCHEDULER_H
 
+extern int sched_queue_add(int proc_addr);
+extern int sched_queue_pop();
+
 extern void scheduler();
 extern int sched_wait(int ms);
 extern void update_sched_ticks();

@@ -26,17 +26,13 @@ char kbd_get_character(char scancode){
 int kbd_is_set(){
 	return kbd_sc == -1 ? 0 : 1;
 }
-void kbd_unset(){
+void kbd_clear(){
 	kbd_sc = -1;
 }
 
-void kbd_wait(int secs){
-	int wait = get_sched_ticks() + secs;
-	while(wait > get_sched_ticks()){
-                if(kbd_sc != -1){
-                        putc(1,1,kbd_get_character(kbd_sc));
-                        kbd_sc = -1;
-			break;
-                }
-        }
+void kbd_wait(){
+	if(kbd_is_set()){
+		putc(1,1,kbd_get_character(kbd_sc));
+		kbd_clear();
+	}
 }
