@@ -17,7 +17,7 @@ void clrscrn(){
 	int x=0, y=0;
 	while(y<=25){
 		while(x<=80){
-			*(short *)(vga_addr + ((x + y * vga_resolution_x) << 1)) = 0x0820;
+			*(short *)(vga_addr + ((x + y * vga_resolution_x) << 1)) = 0x0f20;
 			x++;
 		}
 		x=1;

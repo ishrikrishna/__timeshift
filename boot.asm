@@ -87,6 +87,24 @@ Print16:
 	int 0x10
 	ret
 
+; DAP (Disk Address Packet) for LBA addressing
+; Because we are loading from USB Partition
+; 
+; Little research conclusions
+; 1. x86 is little endian
+; 2. Therefore, offset shall come first in seg:off pairs
+; 
+;Check Int 13h func 42h section of article on wikipedia.
+; https://en.wikipedia.org/wiki/INT_13H#INT_13h_AH=42h:_Extended_Read_Sectors_From_Drive
+second_stage_dap:
+	db 0x10
+	db 0
+	dw 0x2
+	dw 0x7e00
+    dw 0x0000
+	dd 0x1;0x801
+	dd 0x0
+
 ; Entry point in 16 bit Real Mode
 ; See the jmp instruction at the top of this file
 _start:
@@ -99,42 +117,40 @@ _start:
 	mov	es, ax
 	mov	ax, 0x9000			; stack begins at 0x9000-0xffff
 	mov	ss, ax
-	mov	esp, 0xFFFFFFFF
+	mov	sp, 0xffff
 	
 	; Welcome Message
 	mov si, wel
 	call Print16
 	
 	; Loading Protected Mode code
-	mov ah, 0x02
-	mov al, 64
-	mov cx, 0x0002
-	mov dh, 0
-	mov dl, 0
-	mov bx, 0x7e00
+	mov ah, 0x42
+	mov dl, 0x80
+	mov si, second_stage_dap
 	int 0x13
 	
-	;jmp $
-	lgdt [GDT_PTR] ; Install GDT
 	
 	; Jumping to Protected Mode
 	; Notifying the user here
 	mov si, pms
 	call Print16
 	
+	
+	cli
+	;jmp $
+	lgdt [GDT_PTR] ; Install GDT
+
 	; Enabling PM Mode
 	call EnablePM
-	
 	; Jump to protected mode routine
 	; Disabling the interupts because we didn't setup any interuppt handlers
 	; Interuppts shall be enabled only after setting up and loading IDT table properly
-	cli
 	jmp CODE_SEG:PmodeEntry ; CS will be Auto-Updated to CODE_SEG
 	
 	jmp $
 	wel db "Welcome!", 0
-	pms db "Going into protected mode.", 0
-	
+	pms db "Going into protected mode.", 0	
+
 	; Fill remaining bytes with zeros
 	; and add boot signature
 	times 510-($-$$) db 0
@@ -155,18 +171,23 @@ PmodeEntry:
 	mov ebp, 0xffffff
 	mov esp, ebp
 	
-	cli
-	;Enable A20 Gate to allow 32 bit addressing
-	call EnableA20Gate
-	call RemapPIC
-	call SetTimer
-	call initRTC
-	
 	mov si, wel32Msg 	; Setting PM welcome message to be printed
 	mov eax, 0
 	mov ebx, 0
 	call Print32		; Printing PM Welcome message
+	
+	cli
+        ;Enable A20 Gate to allow 32 bit addressing
+        call EnableA20Gate
+        call RemapPIC
+        call SetTimer
+        call initRTC
 	;int 33
+
+        mov eax, 0x40
+        mov ebx, 1
+        mov edi, 0x100000
+        call readseg
 	
 	; Kernel code is already loaded in memory during real mode from disk
 	; via MBR (First Stage)
@@ -174,17 +195,94 @@ PmodeEntry:
 	; Fetching kernel entry point
 	; Kernel is an ELF file
 	; 4 bytes start from offset 0x18 in ELF Header contains the entry point
-	mov ebx, [0x8200 + 0x18]
+	mov ebx, [0x100400 + 0x18]
 	; Calculating effective addres to jump to
-	lea ebx, [0x8200 + ebx]
+	lea ebx, [0x100400 + ebx]
 	; Jumping to kernel
 	jmp ebx
 	
 	; Halting the system
-	jmp hang
+	jmp $
+	;jmp hang
 
 hang:
 	jmp hang
+
+
+waitdisk:
+    mov edx, 0x1F7
+    in al, dx
+    and al, 0xC0
+    cmp al, 0x40
+    jne waitdisk
+    ret
+
+readsect:
+    push eax
+    push ebx
+    push edi
+    call waitdisk
+
+    mov edx, 0x1f2
+    mov eax, 1
+    out dx, al
+
+    mov edx, 0x1f3
+    mov eax, ebx
+    out dx, al
+
+    shr ebx, 8
+    mov eax, ebx
+    mov edx, 0x1f4
+    out dx, al
+
+    shr ebx, 16
+    mov eax, ebx
+    mov edx, 0x1f5
+    out dx, al
+
+    mov eax, ebx
+    shr eax, 24
+    or eax, 0xE0
+    mov edx, 0x1f6
+    out dx, al
+
+    mov edx, 0x1f7
+    mov eax, 0x20
+    out dx, al
+
+    call waitdisk
+
+    ;mov edi, 0x100000
+    mov ecx, 0x80
+    mov edx, 0x1f0
+    cld
+    rep insd
+    call waitdisk
+
+    pop edi
+    pop ebx
+    pop eax
+    ret
+
+readseg:
+    push eax
+    push ebx
+    push edi
+
+.readseg_r:
+    call readsect
+    add ebx, 1
+    lea edi, [edi + 0x200]
+    sub eax, 1
+    cmp al, 0x0
+    jge .readseg_r
+
+    pop edi
+    pop ebx
+    pop eax
+    ret 
+    
 	
 ; Sub routine to print message in 32 bit protected mode
 Print32:

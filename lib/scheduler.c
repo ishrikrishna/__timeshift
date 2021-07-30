@@ -12,18 +12,18 @@
 #include <rtc.h>
 #include <kbd.h>
 
-int rtc_event_total_in_sec = 1024;
-int sched_ticks_ms = 0; // Shall increment upto 1024 every sec
-int sched_ticks = 0; // Shall increment at every sec
-int sched_ticks_reset_interval = 60; // 60 secs
-int sched_lock = 0;
-int sched_task_time_slot = 32;
+const int rtc_event_total_in_sec = 99;
+static int sched_ticks_ms = 0; // Shall increment upto 1024 every sec
+static int sched_ticks = 0; // Shall increment at every sec
+const int sched_ticks_reset_interval = 100; // 60 secs
+static int sched_lock = 0;
+const int sched_task_time_slot = 1;
 
 // Circular Queue Module for Scheduler
 const int sched_queue_sz = 32;
-int sched_queue[32];
-int sched_queue_front = -1;
-int sched_queue_back = -1;
+static int sched_queue[32];
+static int sched_queue_front = -1;
+static int sched_queue_back = -1;
 
 int sched_queue_is_full(){
 	return ((
@@ -68,10 +68,6 @@ void scheduler(){
 	if(!sched_is_locked()){
 		sched_acquire_lock();
 
-		if(sched_ticks >= sched_ticks_reset_interval){
-                	sched_ticks = 0;
-        	}
-
 		if(!sched_queue_is_empty()){
 			int proc = sched_queue_pop();
 			if(proc > 0){
@@ -89,15 +85,20 @@ void scheduler(){
  * Runs 1024 times every second on RTC interrupts.
  */
 void update_sched_ticks(){
-        int stms = sched_ticks_ms;
-	if(stms > rtc_event_total_in_sec){
+        ++sched_ticks_ms;
+	if(sched_ticks_ms >= rtc_event_total_in_sec){
                 sched_ticks_ms = 0;
                 ++sched_ticks;
+	}
+	if(sched_ticks == sched_ticks_reset_interval){
+		sched_ticks = 0;
         }
-	if(stms > sched_task_time_slot){
+
+	if(sched_ticks_ms > sched_task_time_slot){
 		scheduler();
 	}
-        ++sched_ticks_ms;
+
+	for(;;);
 }
 
 void sched_acquire_lock(){
@@ -119,3 +120,9 @@ int get_sched_ticks_in_ms(){
 int get_sched_ticks_reset_interval(){
 	return sched_ticks_reset_interval;
 }
+
+void sched_wait(int secs){
+	int w = get_sched_ticks() + secs;
+	while(get_sched_ticks() < w);
+}
+

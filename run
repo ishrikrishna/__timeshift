@@ -1,9 +1,36 @@
 BUILD_DIR="build"
-rm $BUILD_DIR/kernel.flp
-nasm boot.asm -o $BUILD_DIR/boot.bin && dd count=8 conv=notrunc if=$BUILD_DIR/boot.bin of=$BUILD_DIR/kernel.flp
+
+#rm $BUILD_DIR/kernel.flp
+#rm $BUILD_DIR/kernel.img
+# sudo losetup -P -f --show build/kernel.img
+
+echo "Assembling MBR and Second stage ..."
+nasm boot.asm -o $BUILD_DIR/boot.bin > /dev/null
+
+#echo "Creating floppy image ..."
+#dd count=8 conv=notrunc if=$BUILD_DIR/boot.bin of=$BUILD_DIR/kernel.flp status=none >/dev/null
+
+echo "Creating disk image ..."
+#dd count=32768 conv=notrunc if=/dev/zero of=$BUILD_DIR/kernel.img status=progress > /dev/null
+dd seek=0 count=1 conv=notrunc if=$BUILD_DIR/boot.bin of=build/kernel.img status=progress >/dev/null
+dd seek=1 count=2 skip=1 conv=notrunc if=$BUILD_DIR/boot.bin of=build/kernel.img status=progress >/dev/null
+
 rm $BUILD_DIR/kernel.out
-gcc -Iinclude -mno-red-zone -ffreestanding -fno-builtin -nostdlib -Wall -m32 kernel.c lib/* -o $BUILD_DIR/kernel.out
+echo "Compiling and Assembling kernel ..."
+gcc -Iinclude -mno-red-zone -ffreestanding -fno-builtin -nostdlib -Wall -m32 kernel.c lib/* -o $BUILD_DIR/kernel.out >/dev/null
 #rm $BUILD_DIR/kernel.bin
+
+#echo "Copying kernel to floppy image ..."
 #objcopy -O binary $BUILD_DIR/kernel.out $BUILD_DIR/kernel.bin
-dd seek=3 conv=notrunc if=$BUILD_DIR/kernel.out of=$BUILD_DIR/kernel.flp
-qemu-system-i386 -s $1 -blockdev driver=file,node-name=f0,filename=$BUILD_DIR/kernel.flp -device floppy,drive=f0 &
+#dd status=none seek=3 count=64 conv=notrunc if=$BUILD_DIR/kernel.out of=$BUILD_DIR/kernel.flp >/dev/null
+
+echo "Copying kernel to disk image ..."
+dd status=progress seek=3 conv=notrunc if=$BUILD_DIR/kernel.out of=build/kernel.img >/dev/null
+
+#echo "Starting Qemu i386 using floppy image ..."
+#qemu-system-i386 -s $1 -blockdev driver=file,node-name=f0,filename=$BUILD_DIR/kernel.flp -device floppy,drive=f0 >/dev/null &
+
+echo "Starting Qemu i386 using disk image ..."
+qemu-system-i386 -s $1 -hda build/kernel.img
+
+echo "Done!"

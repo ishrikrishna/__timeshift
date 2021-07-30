@@ -8,7 +8,7 @@
 
 //extern int kbd_sc;
 
-__attribute__ ((cdecl, naked))
+__attribute__ ((naked))
 void keyboard_isr(){
 	asm volatile ("cli \n\t" "pusha \n\t");
 	kbd_fetch_scancode();
@@ -20,23 +20,28 @@ void keyboard_isr(){
 			);
 }
 
-__attribute__ ((cdecl, naked))
+__attribute__ ((naked))
 void timer_isr(){
-        asm volatile ("cli \n\t" "pusha \n\t");
-        outb(0x70, 0x0c);
-        inb(0x71);
-        outb(0x20, 0x20);
+	asm volatile (
+			"cli \n\t"
+			"add $4, %%esp \n\t"
+			"mov %0, %%ebx \n\t"
+			"push %%ebx"
+			:: "r"((int)&update_sched_ticks)
+			);
+	asm volatile ("pusha \n\t");
+	 
+	outb(0x20, 0x20);
         //outb(0xa0, 0xa0);
         asm volatile ("popa \n\t" "iret \n\t");
 }
 
-__attribute__ ((cdecl, naked))
+__attribute__ ((naked))
 void rtc_isr(){
 	asm volatile ("cli \n\t" "pusha \n\t");
-	
-	flush_rtc();
-	update_sched_ticks();
 
+	flush_rtc();
+	
 	outb(0x70, 0x0c);
 	inb(0x71);
 	outb(0xa0, 0xa0);
