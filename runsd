@@ -1,2 +1,0 @@
-sudo dd status=none conv=notrunc if=build/kernel.img of=/dev/sdb1 >/dev/null
-sudo qemu-system-i386 -s $1 -hda /dev/sdb
